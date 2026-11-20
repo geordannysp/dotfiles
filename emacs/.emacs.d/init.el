@@ -210,6 +210,7 @@
 (use-package emacs
   :ensure nil
   :custom                                         ;; Set custom variables to configure Emacs behavior.
+  (blink-cursor-mode)
   (auto-save-default nil)                         ;; Disable automatic saving of buffers.
   (column-number-mode t)                          ;; Display the column number in the mode line.
   (create-lockfiles nil)                          ;; Prevent the creation of lock files when editing.
@@ -247,6 +248,7 @@
     "Function for `switch-to-prev-buffer-skip'."
     (string-match "\\*[^*]+\\*" (buffer-name buffer)))
   (setq switch-to-prev-buffer-skip 'skip-these-buffers)
+  (add-to-list 'default-frame-alist '(fullscreen . maximized))
 
   ;; Save manual customizations to a separate file instead of cluttering `init.el'.
   ;; You can M-x customize, M-x customize-group, or M-x customize-themes, etc.
@@ -675,22 +677,10 @@
   (corfu-max-width 50)                   ;; Maximum width of completion popup
   (corfu-min-width 50)                   ;; Minimum width of completion popup
   (corfu-popupinfo-delay 0.5)            ;; Delay before showing documentation popup
-  :config
-  (if ek-use-nerd-fonts
-    (add-to-list 'corfu-margin-formatters #'nerd-icons-corfu-formatter))
   :init
   (global-corfu-mode)
   (corfu-popupinfo-mode t))
 
-
-;;; NERD-ICONS-CORFU
-;; Provides Nerd Icons to be used with CORFU.
-(use-package nerd-icons-corfu
-  :if ek-use-nerd-fonts
-  :ensure t
-  :straight t
-  :defer t
-  :after (:all corfu))
 
 
 ;;; LSP
@@ -936,6 +926,11 @@
   (setq evil-leader/in-all-states t)  ;; Make the leader key available in all states.
   (setq evil-want-fine-undo t)        ;; Evil uses finer grain undoing steps
 
+  ;; set the cursor mode on insert mode to be on insert mode
+  (setq evil-insert-state-cursor '((bar . 10) "black")
+        evil-normal-state-cursor '(box "black"))
+  
+  
   ;; Define the leader key as Space
   (evil-set-leader 'normal (kbd "SPC"))
   (evil-set-leader 'visual (kbd "SPC"))
@@ -1211,10 +1206,6 @@
   (doom-modeline-project-detection 'project)           ;; Enable project detection for displaying the project name.
   (doom-modeline-buffer-name t)                        ;; Show the buffer name in the mode line.
   (doom-modeline-vcs-max-length 25)                    ;; Limit the version control system (VCS) branch name length to 25 characters.
-  :config
-  (if ek-use-nerd-fonts                                ;; Check if nerd fonts are being used.
-      (setq doom-modeline-icon t)                      ;; Enable icons in the mode line if nerd fonts are used.
-    (setq doom-modeline-icon nil))                     ;; Disable icons if nerd fonts are not being used.
   :hook
   (after-init . doom-modeline-mode))
 
@@ -1229,51 +1220,10 @@
   :custom
   (neo-show-hidden-files t)                ;; By default shows hidden files (toggle with H)
   (neo-theme 'nerd)                        ;; Set the default theme for Neotree to 'nerd' for a visually appealing look.
-  (neo-vc-integration '(face char))        ;; Enable VC integration to display file states with faces (color coding) and characters (icons).
-  :defer t                                 ;; Load the package only when needed to improve startup time.
-  :config
-  (if ek-use-nerd-fonts                    ;; Check if nerd fonts are being used.
-      (setq neo-theme 'nerd-icons)         ;; Set the theme to 'nerd-icons' if nerd fonts are available.
-    (setq neo-theme 'nerd)))               ;; Otherwise, fall back to the 'nerd' theme.
+  (neo-vc-integration '(face char)))        ;; Enable VC integration to display file states with faces (color coding) and characters                ;; Otherwise, fall back to the 'nerd' theme.
 
 
-;;; NERD ICONS
-;; The `nerd-icons' package provides a set of icons for use in Emacs. These icons can
-;; enhance the visual appearance of various modes and packages, making it easier to
-;; distinguish between different file types and functionalities.
-(use-package nerd-icons
-  :if ek-use-nerd-fonts                   ;; Load the package only if the user has configured to use nerd fonts.
-  :ensure t                               ;; Ensure the package is installed.
-  :straight t
-  :defer t)                               ;; Load the package only when needed to improve startup time.
 
-
-;;; NERD ICONS Dired
-;; The `nerd-icons-dired' package integrates nerd icons into the Dired mode,
-;; providing visual icons for files and directories. This enhances the Dired
-;; interface by making it easier to identify file types at a glance.
-(use-package nerd-icons-dired
-  :if ek-use-nerd-fonts                   ;; Load the package only if the user has configured to use nerd fonts.
-  :ensure t                               ;; Ensure the package is installed.
-  :straight t
-  :defer t                                ;; Load the package only when needed to improve startup time.
-  :hook
-  (dired-mode . nerd-icons-dired-mode))
-
-
-;;; NERD ICONS COMPLETION
-;; The `nerd-icons-completion' package enhances the completion interfaces in
-;; Emacs by integrating nerd icons with completion frameworks such as
-;; `marginalia'. This provides visual cues for the completion candidates,
-;; making it easier to distinguish between different types of items.
-(use-package nerd-icons-completion
-  :if ek-use-nerd-fonts                   ;; Load the package only if the user has configured to use nerd fonts.
-  :ensure t                               ;; Ensure the package is installed.
-  :straight t
-  :after (:all nerd-icons marginalia)     ;; Load after `nerd-icons' and `marginalia' to ensure proper integration.
-  :config
-  (nerd-icons-completion-mode)            ;; Activate nerd icons for completion interfaces.
-  (add-hook 'marginalia-mode-hook #'nerd-icons-completion-marginalia-setup)) ;; Setup icons in the marginalia mode for enhanced completion display.
 
 
 ;;; CATPPUCCIN THEME
@@ -1281,29 +1231,6 @@
 ;; for Emacs that is inspired by the popular Catppuccin color palette.
 ;; This theme aims to create a comfortable and aesthetic coding environment
 ;; with soft colors that are easy on the eyes.
-(use-package catppuccin-theme
-  :ensure t
-  :straight t
-  :config
-  (custom-set-faces
-   ;; Set the color for changes in the diff highlighting to blue.
-   `(diff-hl-change ((t (:background unspecified :foreground ,(catppuccin-get-color 'blue))))))
-
-  (custom-set-faces
-   ;; Set the color for deletions in the diff highlighting to red.
-   `(diff-hl-delete ((t (:background unspecified :foreground ,(catppuccin-get-color 'red))))))
-
-  (custom-set-faces
-   ;; Set the color for insertions in the diff highlighting to green.
-   `(diff-hl-insert ((t (:background unspecified :foreground ,(catppuccin-get-color 'green))))))
-
-  (custom-set-faces
-   ;; Pulse with Catppuccin rosewater instead of the default red.
-   `(pulsar-generic ((t (:background ,(catppuccin-get-color 'rosewater) :extend t)))))
-
-  ;; Load the Catppuccin theme without prompting for confirmation.
-  (load-theme 'catppuccin :no-confirm))
-
 
 ;;; UTILITARY FUNCTION TO INSTALL EMACS-KICK
 (defun ek/first-install ()
@@ -1324,3 +1251,5 @@
 
 (provide 'init)
 ;;; init.el ends here
+
+
