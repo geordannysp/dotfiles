@@ -1,2 +1,2 @@
 ;;; -*- coding: utf-8; mode: lisp-data -*-
-nil
+(("/home/bread/.emacs.d/init.el" . 35352))
