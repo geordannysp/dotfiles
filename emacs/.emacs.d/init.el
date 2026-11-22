@@ -134,7 +134,6 @@
 ;; running Emacs as a server, such as 'What version of Node is my LSP using?'.
 ;; Again, this setup configures Emacs much like how a Vimmer would configure Neovim.
 
-
 ;; Emacs comes with a built-in package manager (`package.el'), and we'll use it
 ;; when it makes sense. However, `straight.el' is a bit more user-friendly and
 ;; reproducible, especially for newcomers and shareable configs like emacs-kick.
@@ -210,6 +209,7 @@
 (use-package emacs
   :ensure nil
   :custom                                         ;; Set custom variables to configure Emacs behavior.
+  (auto-fill-mode)
   (blink-cursor-mode)
   (auto-save-default nil)                         ;; Disable automatic saving of buffers.
   (column-number-mode t)                          ;; Display the column number in the mode line.
@@ -218,8 +218,7 @@
   (delete-selection-mode 1)                       ;; Enable replacing selected text with typed text.
   (display-line-numbers-type 'relative)           ;; Use relative line numbering in programming modes.
   (global-auto-revert-non-file-buffers t)         ;; Automatically refresh non-file buffers.
-  (history-length 25)                             ;; Set the length of the command history.
-  (indent-tabs-mode nil)                          ;; Disable the use of tabs for indentation (use spaces instead).
+  (history-length 25)                             ;; Set the length of the command history. (indent-tabs-mode nil)                          ;; Disable the use of tabs for indentation (use spaces instead).
   (inhibit-startup-message t)                     ;; Disable the startup message when Emacs launches.
   (initial-scratch-message "")                    ;; Clear the initial message in the *scratch* buffer.
   (ispell-dictionary "en_US")                     ;; Set the default dictionary for spell checking.
@@ -231,11 +230,11 @@
   (switch-to-buffer-obey-display-actions t)       ;; Make buffer switching respect display actions.
   (tab-always-indent 'complete)                   ;; Make the TAB key complete text instead of just indenting.
   (tab-width 4)                                   ;; Set the tab width to 4 spaces.
-  (treesit-font-lock-level 4)                     ;; Use advanced font locking for Treesit mode.
   (truncate-lines t)                              ;; Enable line truncation to avoid wrapping long lines.
   (use-dialog-box nil)                            ;; Disable dialog boxes in favor of minibuffer prompts.
   (use-short-answers t)                           ;; Use short answers in prompts for quicker responses (y instead of yes)
   (warning-minimum-level :emergency)              ;; Set the minimum level of warnings to display.
+  (global-visual-line-mode t)
 
   :hook                                           ;; Add hooks to enable specific features in certain modes.
   (prog-mode . display-line-numbers-mode)         ;; Enable line numbers in programming modes.
@@ -250,12 +249,18 @@
   (setq switch-to-prev-buffer-skip 'skip-these-buffers)
   (add-to-list 'default-frame-alist '(fullscreen . maximized))
 
+  ;; columns
+
+
+
   ;; Save manual customizations to a separate file instead of cluttering `init.el'.
   ;; You can M-x customize, M-x customize-group, or M-x customize-themes, etc.
   ;; The saves you do manually using the Emacs interface would overwrite this file.
   ;; The following makes sure those customizations are in a separate file.
   (setq custom-file (locate-user-emacs-file "custom-vars.el")) ;; Specify the custom file path.
   (load custom-file 'noerror 'nomessage)                       ;; Load the custom file quietly, ignoring errors.
+
+  (set-face-attribute 'default nil :height 150)
 
   ;; Makes Emacs vertical divisor the symbol │ instead of |.
   (set-display-table-slot standard-display-table 'vertical-border (make-glyph-code ?│))
@@ -504,6 +509,17 @@
   :defer t)       ;; Defer loading Org-mode until it's needed.
 
 
+;; ORG-ROAM
+(use-package emacsql
+  :ensure t)
+
+(use-package magit-section
+  :ensure t)
+
+(setq org-roam-directory (file-truename "~/notes"))
+
+(org-roam-db-autosync-mode)
+
 ;;; WHICH-KEY
 ;; `which-key' is an Emacs package that displays available keybindings in a
 ;; popup window whenever you partially type a key sequence. This is particularly
@@ -518,9 +534,46 @@
 
 
 ;;; ==================== EXTERNAL PACKAGES ====================
-;;
-;; From this point onward, all configurations will be for third-party packages
-;; that enhance Emacs' functionality and extend its capabilities.
+
+;; ELCORD 
+
+(unless (package-installed-p 'elcord)
+  (package-install 'elcord))
+
+(require 'elcord)
+(elcord-mode)
+
+;; COLORSCHEME
+
+(unless (package-installed-p 'gruvbox-theme)
+  (package-install 'gruvbox-theme))
+
+(load-theme 'gruvbox-dark-hard)
+
+;; WEBMODE
+
+
+(use-package web-mode
+  :ensure t
+  :mode
+  (("\\.phtml\\'" . web-mode)
+   ("\\.php\\'" . web-mode)
+   ("\\.tpl\\'" . web-mode)
+   ("\\.[agj]sp\\'" . web-mode)
+   ("\\.as[cp]x\\'" . web-mode)
+   ("\\.erb\\'" . web-mode)
+   ("\\.mustache\\'" . web-mode)
+   ("\\.djhtml\\'" . web-mode)
+   ("\\.html\\'" . web-mode)))
+
+(setq web-mode-engines-alist
+      '(("django"    . "\\.html\\'"))
+)
+
+
+
+;; (setq web-mode-engines-alist
+;;       '(("django"    . "\\.html?\\'")))
 
 ;;; VERTICO
 ;; Vertico enhances the completion experience in Emacs by providing a
@@ -628,22 +681,6 @@
   (embark-collect-mode . consult-preview-at-point-mode)) ;; Enable preview in Embark collect mode.
 
 
-;;; TREESITTER-AUTO
-;; Treesit-auto simplifies the use of Tree-sitter grammars in Emacs,
-;; providing automatic installation and mode association for various
-;; programming languages. This enhances syntax highlighting and
-;; code parsing capabilities, making it easier to work with modern
-;; programming languages.
-(use-package treesit-auto
-  :ensure t
-  :straight t
-  :after emacs
-  :custom
-  (treesit-auto-install 'prompt)
-  :config
-  (treesit-auto-add-to-auto-mode-alist 'all)
-  (global-treesit-auto-mode t))
-
 
 ;;; MARKDOWN-MODE
 ;; Markdown Mode provides support for editing Markdown files in Emacs,
@@ -684,8 +721,7 @@
 
 
 ;;; LSP
-;; Emacs comes with an integrated LSP client called `eglot', which offers basic LSP functionality.
-;; However, `eglot' has limitations, such as not supporting multiple language servers
+;; Emacs comes with an integrated LSP client called `eglot', which offers basic LSP functionality. ;; However, `eglot' has limitations, such as not supporting multiple language servers
 ;; simultaneously within the same buffer (e.g., handling both TypeScript, Tailwind and ESLint
 ;; LSPs together in a React project). For this reason, the more mature and capable
 ;; `lsp-mode' is included as a third-party package, providing advanced IDE-like features
@@ -697,81 +733,6 @@
 ;;       (e.g., asdf or nvm) or other issues.
 ;;       Fortunately, `lsp-mode` has a great resource site:
 ;;       https://emacs-lsp.github.io/lsp-mode/
-(use-package lsp-mode
-  :ensure t
-  :straight t
-  :defer t
-  :hook (;; Replace XXX-mode with concrete major mode (e.g. python-mode)
-         (lsp-mode . lsp-enable-which-key-integration)  ;; Integrate with Which Key
-         ((js-mode                                      ;; Enable LSP for JavaScript
-           tsx-ts-mode                                  ;; Enable LSP for TSX
-           typescript-ts-base-mode                      ;; Enable LSP for TypeScript
-           css-mode                                     ;; Enable LSP for CSS
-           go-ts-mode                                   ;; Enable LSP for Go
-           js-ts-mode                                   ;; Enable LSP for JavaScript (TS mode)
-           prisma-mode                                  ;; Enable LSP for Prisma
-           python-base-mode                             ;; Enable LSP for Python
-           ruby-base-mode                               ;; Enable LSP for Ruby
-           rust-ts-mode                                 ;; Enable LSP for Rust
-           web-mode) . lsp-deferred))                   ;; Enable LSP for Web (HTML)
-  :commands lsp
-  :custom
-  (lsp-keymap-prefix "C-c l")                           ;; Set the prefix for LSP commands.
-  (lsp-inlay-hint-enable nil)                           ;; Usage of inlay hints.
-  (lsp-completion-provider :none)                       ;; Disable the default completion provider.
-  (lsp-session-file (locate-user-emacs-file ".lsp-session")) ;; Specify session file location.
-  (lsp-log-io nil)                                      ;; Disable IO logging for speed.
-  (lsp-idle-delay 0.5)                                  ;; Set the delay for LSP to 0 (debouncing).
-  (lsp-keep-workspace-alive nil)                        ;; Disable keeping the workspace alive.
-  ;; Core settings
-  (lsp-enable-xref t)                                   ;; Enable cross-references.
-  (lsp-auto-configure t)                                ;; Automatically configure LSP.
-  (lsp-enable-links nil)                                ;; Disable links.
-  (lsp-eldoc-enable-hover t)                            ;; Enable ElDoc hover.
-  (lsp-enable-file-watchers nil)                        ;; Disable file watchers.
-  (lsp-enable-folding nil)                              ;; Disable folding.
-  (lsp-enable-imenu t)                                  ;; Enable Imenu support.
-  (lsp-enable-indentation nil)                          ;; Disable indentation.
-  (lsp-enable-on-type-formatting nil)                   ;; Disable on-type formatting.
-  (lsp-enable-suggest-server-download t)                ;; Enable server download suggestion.
-  (lsp-enable-symbol-highlighting t)                    ;; Enable symbol highlighting.
-  (lsp-enable-text-document-color t)                    ;; Enable text document color.
-  ;; Modeline settings
-  (lsp-modeline-code-actions-enable nil)                ;; Keep modeline clean.
-  (lsp-modeline-diagnostics-enable nil)                 ;; Use `flymake' instead.
-  (lsp-modeline-workspace-status-enable t)              ;; Display "LSP" in the modeline when enabled.
-  (lsp-signature-doc-lines 1)                           ;; Limit echo area to one line.
-  (lsp-eldoc-render-all t)                              ;; Render all ElDoc messages.
-  ;; Completion settings
-  (lsp-completion-enable t)                             ;; Enable completion.
-  (lsp-completion-enable-additional-text-edit t)        ;; Enable additional text edits for completions.
-  (lsp-enable-snippet nil)                              ;; Disable snippets
-  (lsp-completion-show-kind t)                          ;; Show kind in completions.
-  ;; Lens settings
-  (lsp-lens-enable t)                                   ;; Enable lens support.
-  ;; Headerline settings
-  (lsp-headerline-breadcrumb-enable-symbol-numbers t)   ;; Enable symbol numbers in the headerline.
-  (lsp-headerline-arrow "▶")                            ;; Set arrow for headerline.
-  (lsp-headerline-breadcrumb-enable-diagnostics nil)    ;; Disable diagnostics in headerline.
-  (lsp-headerline-breadcrumb-icons-enable nil)          ;; Disable icons in breadcrumb.
-  ;; Semantic settings
-  (lsp-semantic-tokens-enable nil))                     ;; Disable semantic tokens.
-
-
-;;; LSP Additional Servers
-;; You can extend `lsp-mode' by integrating additional language servers for specific
-;; technologies. For example, `lsp-tailwindcss' provides support for Tailwind CSS
-;; classes within your HTML files. By using various LSP packages, you can connect
-;; multiple LSP servers simultaneously, enhancing your coding experience across
-;; different languages and frameworks.
-(use-package lsp-tailwindcss
-  :ensure t
-  :straight t
-  :defer t
-  :config
-  (add-to-list 'lsp-language-id-configuration '(".*\\.erb$" . "html")) ;; Associate ERB files with HTML.
-  :init
-  (setq lsp-tailwindcss-add-on-mode t))
 
 
 ;;; ELDOC-BOX
@@ -927,8 +888,8 @@
   (setq evil-want-fine-undo t)        ;; Evil uses finer grain undoing steps
 
   ;; set the cursor mode on insert mode to be on insert mode
-  (setq evil-insert-state-cursor '((bar . 10) "black")
-        evil-normal-state-cursor '(box "black"))
+  (setq evil-insert-state-cursor '((bar . 10) "white")
+        evil-normal-state-cursor '(box "white"))
   
   
   ;; Define the leader key as Space
@@ -1156,42 +1117,6 @@
   :config)
 
 
-;;; PULSAR
-;; The `pulsar' package enhances the user experience in Emacs by providing
-;; visual feedback through pulsating highlights. This feature is especially
-;; useful in programming modes, where it can help users easily track
-;; actions such as scrolling, error navigation, yanking, deleting, and
-;; jumping to definitions.
-(use-package pulsar
-  :defer t
-  :straight t
-  :ensure t
-  :hook
-  (after-init . pulsar-global-mode)
-  :config
-  (setq pulsar-pulse t)
-  (setq pulsar-delay 0.0125)
-  (setq pulsar-iterations 10)
-  (setq pulsar-tty-color (face-background 'pulsar-generic nil t)) ;; TTY ignores faces, reuse the theme color
-
-  (add-to-list 'pulsar-pulse-functions 'evil-scroll-down)
-  (add-to-list 'pulsar-pulse-functions 'flymake-goto-next-error)
-  (add-to-list 'pulsar-pulse-functions 'flymake-goto-prev-error)
-  (add-to-list 'pulsar-pulse-functions 'evil-delete)
-  (add-to-list 'pulsar-pulse-functions 'evil-delete-line)
-  (add-to-list 'pulsar-pulse-functions 'evil-jump-item)
-  (add-to-list 'pulsar-pulse-functions 'diff-hl-next-hunk)
-  (add-to-list 'pulsar-pulse-functions 'diff-hl-previous-hunk)
-
-  ;; Yanks change nothing, so pulsar can only guess the line. Pulse the
-  ;; exact range evil yanked instead.
-  (setq pulsar-pulse-region-functions
-        (seq-difference pulsar-pulse-region-functions '(evil-yank evil-yank-line)))
-  (advice-add 'evil-yank :after
-              (lambda (beg end &rest _)
-                (when (and pulsar-mode (memq this-command '(evil-yank evil-yank-line)))
-                  (pulsar-highlight-pulse (cons beg end))))))
-
 
 ;;; DOOM MODELINE
 ;; The `doom-modeline' package provides a sleek, modern mode-line that is visually appealing
@@ -1209,30 +1134,8 @@
   :hook
   (after-init . doom-modeline-mode))
 
-
-;;; NEOTREE
-;; The `neotree' package provides a file tree explorer for Emacs, allowing easy navigation
-;; through directories and files. It presents a visual representation of the file system
-;; and integrates with version control to show file states.
-(use-package neotree
-  :ensure t
-  :straight t
-  :custom
-  (neo-show-hidden-files t)                ;; By default shows hidden files (toggle with H)
-  (neo-theme 'nerd)                        ;; Set the default theme for Neotree to 'nerd' for a visually appealing look.
-  (neo-vc-integration '(face char)))        ;; Enable VC integration to display file states with faces (color coding) and characters                ;; Otherwise, fall back to the 'nerd' theme.
-
-
-
-
-
-;;; CATPPUCCIN THEME
-;; The `catppuccin-theme' package provides a visually pleasing color theme
-;; for Emacs that is inspired by the popular Catppuccin color palette.
-;; This theme aims to create a comfortable and aesthetic coding environment
-;; with soft colors that are easy on the eyes.
-
 ;;; UTILITARY FUNCTION TO INSTALL EMACS-KICK
+
 (defun ek/first-install ()
   "Install tree-sitter grammars and compile packages on first run..."
   (interactive)                                      ;; Allow this function to be called interactively.
@@ -1250,6 +1153,3 @@
   (kill-emacs))                                      ;; Close Emacs after installation is complete.
 
 (provide 'init)
-;;; init.el ends here
-
-
